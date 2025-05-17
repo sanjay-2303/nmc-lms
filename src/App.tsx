@@ -13,6 +13,21 @@ import InstructorDashboard from "./components/dashboard/InstructorDashboard";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./components/dashboard/AdminDashboard";
 
+// Import new page components
+import AdminManageCoursesPage from "./pages/admin/AdminManageCoursesPage";
+import AdminManageInstructorsPage from "./pages/admin/AdminManageInstructorsPage";
+import AdminManageStudentsPage from "./pages/admin/AdminManageStudentsPage";
+import AdminReportsPage from "./pages/admin/AdminReportsPage";
+
+import StudentCourseDetailPage from "./pages/student/StudentCourseDetailPage";
+import StudentLessonsPage from "./pages/student/StudentLessonsPage";
+import StudentResourcesPage from "./pages/student/StudentResourcesPage";
+
+import InstructorCoursesPage from "./pages/instructor/InstructorCoursesPage";
+import InstructorUploadPage from "./pages/instructor/InstructorUploadPage";
+import InstructorStudentProgressPage from "./pages/instructor/InstructorStudentProgressPage";
+
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -28,26 +43,27 @@ const App = () => (
           {/* Student routes */}
           <Route path="/student" element={<StudentLayout />}>
             <Route index element={<StudentDashboard />} />
-            <Route path="courses" element={<div>Student Courses</div>} />
-            <Route path="lessons" element={<div>Student Lessons</div>} />
-            <Route path="resources" element={<div>Student Resources</div>} />
+            <Route path="courses/:courseId" element={<StudentCourseDetailPage />} /> {/* For individual course view */}
+            <Route path="courses" element={<StudentDashboard />} /> {/* Fallback or general courses overview if needed, currently dashboard shows courses */}
+            <Route path="lessons" element={<StudentLessonsPage />} />
+            <Route path="resources" element={<StudentResourcesPage />} />
           </Route>
           
           {/* Instructor routes */}
           <Route path="/instructor" element={<InstructorLayout />}>
             <Route index element={<InstructorDashboard />} />
-            <Route path="courses" element={<div>Instructor Courses</div>} />
-            <Route path="upload" element={<div>Upload Content</div>} />
-            <Route path="progress" element={<div>Student Progress</div>} />
+            <Route path="courses" element={<InstructorCoursesPage />} />
+            <Route path="upload" element={<InstructorUploadPage />} />
+            <Route path="progress" element={<InstructorStudentProgressPage />} />
           </Route>
           
           {/* Admin routes */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
-            <Route path="courses" element={<div>Admin Courses</div>} />
-            <Route path="instructors" element={<div>Manage Instructors</div>} />
-            <Route path="students" element={<div>Manage Students</div>} />
-            <Route path="reports" element={<div>Reports & Analytics</div>} />
+            <Route path="courses" element={<AdminManageCoursesPage />} />
+            <Route path="instructors" element={<AdminManageInstructorsPage />} />
+            <Route path="students" element={<AdminManageStudentsPage />} />
+            <Route path="reports" element={<AdminReportsPage />} />
           </Route>
           
           {/* Catch all */}
