@@ -4,6 +4,7 @@ import CourseCard from "../course/CourseCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Users, Video, Plus, UploadCloud } from "lucide-react";
+import { toast } from "sonner";
 
 const InstructorDashboard = () => {
   // Mock data for the instructor dashboard
