@@ -1,6 +1,7 @@
 
 import PageHeader from "@/components/ui/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button"; // Added this import
 import { BookOpen, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
@@ -12,15 +13,39 @@ interface Lesson {
   courseId: string; // To link to course detail page
   moduleId: string; // To potentially highlight lesson in course detail
   status: "completed" | "in-progress" | "locked";
+  videoUrl?: string; // Added for sample video link
+  resourceUrl?: string; // Added for sample resource link
 }
 
 const StudentLessonsPage = () => {
-  const [lessons] = useState<Lesson[]>([
-    { id: "l1", title: "Introduction to Accounting", course: "CA Foundation", courseId: "ca-foundation", moduleId: "m1", status: "completed" },
-    { id: "l2", title: "Accounting Standards Overview", course: "CA Foundation", courseId: "ca-foundation", moduleId: "m1", status: "in-progress" },
+  const [lessons, setLessons] = useState<Lesson[]>([
+    { id: "l1", title: "Introduction to Accounting", course: "CA Foundation", courseId: "ca-foundation", moduleId: "m1", status: "completed", videoUrl: "/sample-video.mp4", resourceUrl: "/sample-notes.pdf" },
+    { id: "l2", title: "Accounting Standards Overview", course: "CA Foundation", courseId: "ca-foundation", moduleId: "m1", status: "in-progress", videoUrl: "/sample-video.mp4" },
     { id: "l3", title: "Indian Contract Act, 1872", course: "CA Foundation", courseId: "ca-foundation", moduleId: "m2", status: "locked" },
-    { id: "l4", title: "Cost Ascertainment", course: "CMA Intermediate", courseId: "cma-intermediate", moduleId: "m1", status: "locked" },
+    { id: "l4", title: "Cost Ascertainment", course: "CMA Intermediate", courseId: "cma-intermediate", moduleId: "m1", status: "locked", resourceUrl: "/sample-qpaper.pdf" },
+    { id: "l5", title: "Advanced Tax Law", course: "CA Final", courseId: "ca-final", moduleId: "m3", status: "in-progress", videoUrl: "/sample-video.mp4"},
+    { id: "l6", title: "Auditing Techniques", course: "CA Final", courseId: "ca-final", moduleId: "m4", status: "completed", videoUrl: "/sample-video.mp4", resourceUrl: "/audit-checklist.pdf"}
   ]);
+
+  // Function to determine the action for each lesson (simplified)
+  const getLessonAction = (lesson: Lesson) => {
+    if (lesson.status === "locked") {
+      return (
+        <Button variant="outline" size="sm" disabled>
+          <BookOpen className="h-4 w-4 mr-1" /> Locked
+        </Button>
+      );
+    }
+    // If not locked, provide link to course detail page, possibly with query params for lesson/module
+    return (
+      <Link to={`/student/courses/${lesson.courseId}?module=${lesson.moduleId}&lesson=${lesson.id}`}>
+        <Button variant="outline" size="sm">
+          <Play className="h-4 w-4 mr-1" /> Go to Lesson
+        </Button>
+      </Link>
+    );
+  };
+
 
   return (
     <div className="animate-fade-in">
@@ -48,13 +73,22 @@ const StudentLessonsPage = () => {
                     }`}>
                       {lesson.status.charAt(0).toUpperCase() + lesson.status.slice(1)}
                     </span>
-                    {lesson.status !== "locked" ? (
-                      <Link to={`/student/courses/${lesson.courseId}?lesson=${lesson.id}`}> {/* Modify path to include lesson if needed */}
+                    {/* Placeholder for action buttons or links based on status */}
+                    {lesson.status === "completed" && (
+                      <Link to={`/student/courses/${lesson.courseId}?lesson=${lesson.id}`}>
                         <Button variant="outline" size="sm">
-                          <Play className="h-4 w-4 mr-1" /> Go to Lesson
+                          <Play className="h-4 w-4 mr-1" /> Review
                         </Button>
                       </Link>
-                    ) : (
+                    )}
+                    {lesson.status === "in-progress" && (
+                      <Link to={`/student/courses/${lesson.courseId}?lesson=${lesson.id}`}>
+                        <Button variant="default" size="sm"> {/* Changed to default for emphasis */}
+                          <Play className="h-4 w-4 mr-1" /> Continue
+                        </Button>
+                      </Link>
+                    )}
+                     {lesson.status === "locked" && (
                        <Button variant="outline" size="sm" disabled>
                           <BookOpen className="h-4 w-4 mr-1" /> Locked
                         </Button>
@@ -64,7 +98,7 @@ const StudentLessonsPage = () => {
               ))}
             </ul>
           ) : (
-            <p className="text-gray-500">No lessons available yet.</p>
+            <p className="text-gray-500">No lessons available yet. Check back soon!</p>
           )}
         </CardContent>
       </Card>
