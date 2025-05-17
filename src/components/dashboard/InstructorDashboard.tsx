@@ -10,20 +10,20 @@ const InstructorDashboard = () => {
   // Mock data for the instructor dashboard
   const [courses] = useState([
     {
-      id: "ca-foundation",
-      title: "CA Foundation",
+      id: "ca-foundation-2025",
+      title: "CA Foundation Batch 2025",
       type: "CA",
       totalModules: 4,
-      totalLessons: 24,
-      path: "/instructor/courses/ca-foundation",
+      totalLessons: 45, // Updated to be more representative
+      path: "/instructor/courses", // Updated path to general courses page
     },
     {
-      id: "cma-foundation",
-      title: "CMA Foundation",
+      id: "cma-inter-crash",
+      title: "CMA Inter Group I Crash Course",
       type: "CMA",
       totalModules: 3,
-      totalLessons: 18,
-      path: "/instructor/courses/cma-foundation",
+      totalLessons: 30, // Updated to be more representative
+      path: "/instructor/courses", // Updated path to general courses page
     },
   ]);
 
@@ -65,7 +65,7 @@ const InstructorDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-lms-darkBlue">2</div>
+            <div className="text-3xl font-bold text-lms-darkBlue">{courses.length}</div>
             <p className="text-sm text-gray-500">Active courses</p>
           </CardContent>
         </Card>
@@ -100,11 +100,15 @@ const InstructorDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="lg:col-span-2">
           <h2 className="text-xl font-bold text-lms-darkBlue mb-4">My Courses</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {courses.map((course) => (
-              <CourseCard key={course.id} {...course} />
-            ))}
-          </div>
+          {courses.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {courses.map((course) => (
+                <CourseCard key={course.id} {...course} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500">You have not created any courses yet.</p>
+          )}
         </div>
         
         <div>

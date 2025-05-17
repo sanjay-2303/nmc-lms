@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import LoginForm from "@/components/auth/LoginForm";
@@ -41,14 +40,6 @@ const Index = () => {
               through our comprehensive learning platform designed specifically for
               CA and CMA students.
             </p>
-            {/* Illustration placeholder for mobile, visible on desktop */}
-            <div className="md:flex justify-center items-center mt-8 hidden">
-              <img 
-                src="/lovable-uploads/photo-1488590528505-98d2b5aba04b.jpeg" 
-                alt="LMS Illustration" 
-                className="rounded-lg shadow-md max-w-md w-full h-auto object-cover"
-              />
-            </div>
           </div>
 
           <div>

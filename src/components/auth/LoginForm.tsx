@@ -55,7 +55,7 @@ const LoginForm = ({ onRoleSelect }: LoginFormProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md">
+    <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md mx-auto"> {/* Added mx-auto */}
       <div>
         <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
           {getUsernameLabel()}
@@ -124,3 +124,4 @@ const LoginForm = ({ onRoleSelect }: LoginFormProps) => {
 };
 
 export default LoginForm;
+
