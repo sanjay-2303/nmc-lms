@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import PageHeader from "../ui/PageHeader";
 import CourseCard from "../course/CourseCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Users, Video, Plus } from "lucide-react";
+import { BookOpen, Users, Video, Plus, UploadCloud } from "lucide-react";
 
 const InstructorDashboard = () => {
   // Mock data for the instructor dashboard
@@ -32,14 +31,26 @@ const InstructorDashboard = () => {
     { title: "Business Economics", course: "CA Foundation", date: "Yesterday" },
   ]);
 
+  const handleUploadVideoClick = () => {
+    // Placeholder for navigation or modal for video upload
+    // This will navigate to the /instructor/upload page for now
+    // In a real app, this might open a modal or a dedicated upload UI component.
+    // For now, let's assume there's an upload page route as defined in App.tsx
+    window.location.href = "/instructor/upload"; 
+    toast.info("Video upload functionality requires backend setup for file storage.");
+  };
+
   return (
     <div className="animate-fade-in">
       <PageHeader
         title="Instructor Dashboard"
         subtitle="Manage your courses and student progress"
         action={
-          <Button className="bg-lms-blue hover:bg-lms-darkBlue">
-            <Plus className="mr-1 h-4 w-4" /> New Upload
+          <Button 
+            className="bg-lms-blue hover:bg-lms-darkBlue"
+            onClick={handleUploadVideoClick}
+          >
+            <UploadCloud className="mr-1 h-4 w-4" /> Upload New Video
           </Button>
         }
       />
@@ -113,7 +124,7 @@ const InstructorDashboard = () => {
                 ))}
               </ul>
               
-              <Button variant="outline" className="w-full mt-4">
+              <Button variant="outline" className="w-full mt-4" onClick={() => toast.info("This would show all uploads.")}>
                 View All Uploads
               </Button>
             </CardContent>

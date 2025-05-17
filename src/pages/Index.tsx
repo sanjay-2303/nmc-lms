@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import LoginForm from "@/components/auth/LoginForm";
+// Removed BookOpen, Video, FileText as they are no longer used here
 
 const Index = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -37,34 +38,13 @@ const Index = () => {
               through our comprehensive learning platform designed specifically for
               CA and CMA students.
             </p>
-            <div className="hidden md:flex gap-6">
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-lms-lightBlue flex items-center justify-center">
-                  <BookOpen className="h-6 w-6 text-lms-darkBlue" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium">Structured Courses</p>
-                  <p className="text-sm text-gray-500">CA & CMA curriculum</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-lms-lightBlue flex items-center justify-center">
-                  <Video className="h-6 w-6 text-lms-darkBlue" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium">Video Lectures</p>
-                  <p className="text-sm text-gray-500">Learn at your pace</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-lms-lightBlue flex items-center justify-center">
-                  <FileText className="h-6 w-6 text-lms-darkBlue" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium">Study Materials</p>
-                  <p className="text-sm text-gray-500">PDFs & Resources</p>
-                </div>
-              </div>
+            {/* Removed feature section, adding illustration placeholder */}
+            <div className="hidden md:flex justify-center items-center mt-8">
+              <img 
+                src="/lovable-uploads/photo-1488590528505-98d2b5aba04b.jpeg" 
+                alt="LMS Illustration" 
+                className="rounded-lg shadow-md max-w-md w-full h-auto object-cover"
+              />
             </div>
           </div>
 
@@ -100,5 +80,4 @@ const Index = () => {
 
 export default Index;
 
-// Import icons used in this file
-import { BookOpen, Video, FileText } from "lucide-react";
+// No icons are imported from lucide-react directly in this file anymore.

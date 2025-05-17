@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -31,12 +31,10 @@ const LoginForm = ({ onRoleSelect }: LoginFormProps) => {
     setTimeout(() => {
       setIsLoading(false);
       
-      // This is a demo - in a real app, you would validate credentials against a backend
       if (formData.username && formData.password) {
         onRoleSelect(formData.role);
         toast.success("Login successful!");
         
-        // Redirect based on role
         if (formData.role === "admin") {
           navigate("/admin");
         } else if (formData.role === "instructor") {
@@ -50,11 +48,17 @@ const LoginForm = ({ onRoleSelect }: LoginFormProps) => {
     }, 1000);
   };
 
+  const getUsernameLabel = () => {
+    if (formData.role === "student") return "Roll No.";
+    if (formData.role === "instructor") return "Staff ID";
+    return "Username";
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md">
       <div>
         <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-          Username / Student ID
+          {getUsernameLabel()}
         </label>
         <input
           id="username"
@@ -64,13 +68,19 @@ const LoginForm = ({ onRoleSelect }: LoginFormProps) => {
           className="lms-input"
           value={formData.username}
           onChange={handleChange}
+          placeholder={formData.role === "student" ? "Enter your Roll No." : formData.role === "instructor" ? "Enter your Staff ID" : "Enter your username"}
         />
       </div>
       
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-          Password
-        </label>
+        <div className="flex justify-between items-center mb-1">
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            Password
+          </label>
+          <Link to="#" className="text-sm text-lms-blue hover:underline" onClick={() => toast.info("Forgot password functionality requires backend setup.")}>
+            Forgot Password?
+          </Link>
+        </div>
         <input
           id="password"
           name="password"
@@ -79,6 +89,7 @@ const LoginForm = ({ onRoleSelect }: LoginFormProps) => {
           className="lms-input"
           value={formData.password}
           onChange={handleChange}
+          placeholder="Enter your password"
         />
       </div>
       
