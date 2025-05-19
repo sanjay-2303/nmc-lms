@@ -1,7 +1,6 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Session, User } from '@supabase/supabase-js';
+import { Session, User, Subscription } from '@supabase/supabase-js'; // Added Subscription
 import { useNavigate } from 'react-router-dom';
 
 // Define types based on our DB schema
@@ -39,30 +38,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
+      const { data: { session: currentSession } } = await supabase.auth.getSession(); // Renamed to avoid conflict
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
       setLoading(false);
     };
     getSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        console.log("Auth event:", _event, session);
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+      async (_event, activeSession) => { // Renamed to avoid conflict
+        console.log("Auth event:", _event, activeSession);
+        setSession(activeSession);
+        setUser(activeSession?.user ?? null);
+        // Profile and roles will be re-fetched by the other useEffect when user changes
+        setLoading(false); // Ensure loading is set to false here as well
       }
     );
 
     return () => {
-      authListener?.unsubscribe();
+      authListener.subscription?.unsubscribe(); // Corrected: call unsubscribe on the subscription object
     };
   }, []);
 
   useEffect(() => {
     const fetchUserData = async () => {
       if (user) {
+        setLoading(true); // Set loading true while fetching user data
         // Fetch profile
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
@@ -89,9 +90,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           setRoles(rolesData.map((r: any) => r.role as AppRole));
         }
+        setLoading(false); // Set loading false after fetching
       } else {
         setProfile(null);
         setRoles([]);
+        // If there's no user, we might not need to set loading:false here,
+        // as the initial auth state listener already does.
+        // However, if user becomes null after being set, this ensures consistency.
       }
     };
 
@@ -103,12 +108,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       console.error('Sign in error:', error);
-      setLoading(false);
+      // setLoading(false); // Listener will handle this
       throw error;
     }
     // Auth state change listener will handle setting user, session, profile, roles
     console.log("Sign in successful", data);
-    setLoading(false);
+    // setLoading(false); // Listener will handle this
     return data;
   };
 
@@ -125,24 +130,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
     if (error) {
       console.error('Sign up error:', error);
-      setLoading(false);
+      // setLoading(false); // Listener will handle this
       throw error;
     }
     // User will need to confirm email if enabled.
     // Auth state change listener and triggers will handle profile and role creation.
     console.log("Sign up successful, waiting for email confirmation if enabled.", data);
-    setLoading(false);
+    // setLoading(false); // Listener will handle this
     return data;
   };
 
   const signOut = async () => {
     setLoading(true);
     await supabase.auth.signOut();
+    // The auth state listener should ideally clear session, user, profile, roles.
+    // Explicitly setting them here ensures immediate UI update before listener might fire.
     setSession(null);
     setUser(null);
     setProfile(null);
     setRoles([]);
-    setLoading(false);
+    setLoading(false); // Set loading to false after sign out completes
     navigate('/'); // Navigate to home page after sign out
   };
 

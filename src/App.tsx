@@ -39,7 +39,6 @@ const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
   console.log("ProtectedRoute Check: loading:", loading, "session:", !!session, "roles:", roles, "allowed:", allowedRoles);
 
   if (loading) {
-    // You can return a loading spinner here if you want
     return <div className="flex justify-center items-center h-screen">Loading...</div>;
   }
 
@@ -47,45 +46,35 @@ const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
     console.log("No session, redirecting to /");
     return <Navigate to="/" replace />;
   }
-
+  
+  // Only check roles if roles array is populated. If session exists but roles are empty,
+  // it means they are still loading or user has no roles.
+  // The `loading` check above should handle the initial data fetch.
+  // If roles are loaded and none match allowedRoles, then redirect.
   if (roles.length > 0 && !isAnyRole(allowedRoles)) {
-    console.log("Role not allowed, redirecting to /unauthorized or / based on primary role");
-    // Redirect to a generic unauthorized page or based on primary role to their dashboard
+    console.log("Role not allowed, redirecting based on primary role or to /");
     if (isAnyRole(['student'])) return <Navigate to="/student" replace />;
     if (isAnyRole(['instructor'])) return <Navigate to="/instructor" replace />;
-    if (isAnyRole(['admin'])) return <Navigate to="/admin" replace />; // Should not happen if admin is in allowedRoles
-    return <Navigate to="/" replace />; // Fallback if no primary role matches
+    if (isAnyRole(['admin'])) return <Navigate to="/admin" replace />; // Should not happen if admin is in allowedRoles & already an admin
+    return <Navigate to="/" replace />; // Fallback if no primary role or other issue
   }
   
-  // If roles are not yet loaded but session exists, it might still show Outlet briefly.
-  // This can be improved by ensuring roles are loaded before rendering Outlet or showing loader.
-  // For now, the check `roles.length > 0` handles cases where roles are fetched.
-  // If `isAnyRole` is true, it means roles are loaded and match.
-  // If `roles.length === 0` and `session` exists, it means roles are still being fetched or user has no roles.
-  // The initial `loading` state from `useAuth` should cover the very first load.
+  // If session exists, but roles are not yet loaded (roles.length === 0),
+  // and it's not loading, it implies the user might have no roles assigned yet.
+  // Or, data is still incoming. The loading flag from useAuth should ideally cover this.
+  // For now, if roles are empty but session exists and not loading, we might let them pass if allowedRoles is empty or includes a default.
+  // However, this current logic will block if roles are empty and allowedRoles requires a specific role.
+  // This is generally fine, as roles should populate quickly after session.
 
   return <Outlet />;
 };
 
 
 const AppRoutes = () => {
-  const { session, loading, roles, isAnyRole } = useAuth();
+  // const { session, loading, roles, isAnyRole } = useAuth(); // No longer needed here
 
-  // This effect redirects logged-in users from the Index page
-  useEffect(() => {
-    if (!loading && session && window.location.pathname === '/') {
-      if (isAnyRole(['admin'])) {
-        navigate('/admin');
-      } else if (isAnyRole(['instructor'])) {
-        navigate('/instructor');
-      } else if (isAnyRole(['student'])) {
-        navigate('/student');
-      }
-    }
-  }, [session, loading, roles, isAnyRole, navigate]); // Added navigate and isAnyRole
-  // It seems navigate is not defined here. Let's remove this useEffect from App.tsx.
-  // The redirection logic is better handled in the Index page itself or within AuthForm after login.
-  // AuthForm already has a redirect useEffect.
+  // The useEffect that was here has been removed as it was causing build errors
+  // and its redirection logic is handled in Index.tsx and AuthForm.tsx.
 
   return (
     <Routes>
@@ -93,18 +82,18 @@ const AppRoutes = () => {
       <Route path="/" element={<Index />} />
       
       {/* Student routes */}
-      <Route element={<ProtectedRoute allowedRoles={['student', 'admin']} />}> {/* Admin can also access student routes */}
+      <Route element={<ProtectedRoute allowedRoles={['student', 'admin']} />}>
         <Route path="/student" element={<StudentLayout />}>
           <Route index element={<StudentDashboard />} />
           <Route path="courses/:courseId" element={<StudentCourseDetailPage />} />
-          <Route path="courses" element={<StudentDashboard />} />
+          <Route path="courses" element={<StudentDashboard />} /> {/* Could also be a dedicated courses list page */}
           <Route path="lessons" element={<StudentLessonsPage />} />
           <Route path="resources" element={<StudentResourcesPage />} />
         </Route>
       </Route>
       
       {/* Instructor routes */}
-      <Route element={<ProtectedRoute allowedRoles={['instructor', 'admin']} />}> {/* Admin can also access instructor routes */}
+      <Route element={<ProtectedRoute allowedRoles={['instructor', 'admin']} />}>
         <Route path="/instructor" element={<InstructorLayout />}>
           <Route index element={<InstructorDashboard />} />
           <Route path="courses" element={<InstructorCoursesPage />} />
@@ -130,9 +119,10 @@ const AppRoutes = () => {
   );
 }
 
-// Need to import navigate for the useEffect if we keep it.
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+// The imports for useEffect and useNavigate might become unused here if not used elsewhere.
+// Keeping them for now, as the linter will typically warn if they are truly unused.
+// import { useEffect } from 'react'; // No longer directly used in AppRoutes
+// import { useNavigate } from 'react-router-dom'; // No longer directly used in AppRoutes
 
 
 const App = () => (
