@@ -20,7 +20,7 @@ interface AuthContextType {
   roles: AppRole[];
   loading: boolean;
   signInWithEmail: (email: string, password: string) => Promise<any>;
-  signUpWithEmail: (email: string, password: string, fullName: string) => Promise<any>;
+  signUpWithEmail: (email: string, password: string, fullName: string, role?: AppRole) => Promise<any>; // Added role parameter
   signOut: () => Promise<void>;
   isRole: (role: AppRole) => boolean;
   isAnyRole: (roles: AppRole[]) => boolean;
@@ -117,7 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return data;
   };
 
-  const signUpWithEmail = async (email: string, password: string, fullName: string) => {
+  const signUpWithEmail = async (email: string, password: string, fullName: string, role: AppRole = 'student') => { // Added role parameter with default
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -130,13 +130,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
     if (error) {
       console.error('Sign up error:', error);
-      // setLoading(false); // Listener will handle this
+      setLoading(false); // Set loading false on error
       throw error;
     }
     // User will need to confirm email if enabled.
     // Auth state change listener and triggers will handle profile and role creation.
     console.log("Sign up successful, waiting for email confirmation if enabled.", data);
-    // setLoading(false); // Listener will handle this
+    // setLoading(false); // Listener will handle this, or handled by finally block if we add one
     return data;
   };
 
