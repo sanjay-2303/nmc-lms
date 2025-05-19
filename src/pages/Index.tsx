@@ -1,9 +1,27 @@
-import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import LoginForm from "@/components/auth/LoginForm";
+import AuthForm from "@/components/auth/AuthForm";
+import { useAuth } from "@/contexts/AuthContext";
+import { Navigate } from "react-router-dom";
+import { useEffect } from "react";
 
 const Index = () => {
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const { session, loading, roles, isAnyRole } = useAuth();
+
+  // Redirect if user is already logged in and roles are determined
+  if (!loading && session && roles.length > 0) {
+    if (isAnyRole(['admin'])) return <Navigate to="/admin" replace />;
+    if (isAnyRole(['instructor'])) return <Navigate to="/instructor" replace />;
+    if (isAnyRole(['student'])) return <Navigate to="/student" replace />;
+  }
+  
+  // Show loading or a placeholder while auth state is being determined
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  // If session exists but roles are not yet loaded, this might flash the login form.
+  // The AuthForm itself has a redirect logic too.
+  // This page should only show login if not authenticated.
 
   return (
     <div 
@@ -21,6 +39,7 @@ const Index = () => {
               National Management College
             </span>
           </div>
+          {/* Potentially add a Sign Out button here if user is logged in, or manage in layouts */}
         </div>
       </header>
 
@@ -35,7 +54,7 @@ const Index = () => {
             <h2 className="text-2xl sm:text-3xl font-medium text-lms-blue mb-6">
               For CA & CMA Courses
             </h2>
-            <p className="text-gray-700 mb-8 text-lg"> {/* Changed text color for better contrast */}
+            <p className="text-gray-700 mb-8 text-lg">
               Access your course materials, watch lectures, and track your progress
               through our comprehensive learning platform designed specifically for
               CA and CMA students.
@@ -43,13 +62,13 @@ const Index = () => {
           </div>
 
           <div>
-            <Card className="shadow-lg bg-white/90 backdrop-blur-sm"> {/* Added slight transparency to card */}
+            <Card className="shadow-lg bg-white/90 backdrop-blur-sm">
               <CardContent className="p-6">
                 <div className="mb-6 text-center">
-                  <h3 className="text-2xl font-bold text-lms-darkBlue">Log In</h3>
-                  <p className="text-gray-500">Access your account</p>
+                  <h3 className="text-2xl font-bold text-lms-darkBlue">Log In / Sign Up</h3>
+                  <p className="text-gray-500">Access your account or create a new one</p>
                 </div>
-                <LoginForm onRoleSelect={setUserRole} />
+                <AuthForm /> {/* Use the new AuthForm */}
               </CardContent>
             </Card>
           </div>
@@ -57,7 +76,7 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-lms-darkBlue/90 text-white py-6 px-4 backdrop-blur-sm"> {/* Added slight transparency to footer */}
+      <footer className="bg-lms-darkBlue/90 text-white py-6 px-4 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto text-center">
           <p className="font-medium">National Management College</p>
           <p className="text-sm opacity-80 mt-1">
