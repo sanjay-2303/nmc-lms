@@ -5,9 +5,9 @@ import { Play, Pause } from "lucide-react";
 interface VideoPlayerProps {
   src: string;
   title: string;
-  onProgress?: (progress: number) => void; // Made optional as YouTube doesn't easily provide this
-  onComplete?: () => void; // Made optional
-  lessonType?: 'video' | 'youtube'; // To explicitly know the type
+  onProgress?: (progress: number) => void;
+  onComplete?: () => void;
+  lessonType?: 'video' | 'youtube';
 }
 
 const VideoPlayer = ({ src, title, onProgress, onComplete, lessonType = 'video' }: VideoPlayerProps) => {
@@ -31,7 +31,6 @@ const VideoPlayer = ({ src, title, onProgress, onComplete, lessonType = 'video' 
 
   const youtubeEmbedUrl = isYouTube ? getYouTubeEmbedUrl(src) : null;
 
-  // Format time from seconds to MM:SS
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -40,9 +39,6 @@ const VideoPlayer = ({ src, title, onProgress, onComplete, lessonType = 'video' 
 
   const togglePlayPause = () => {
     if (isYouTube) {
-      // YouTube iframe API would be needed for precise control.
-      // For now, play/pause on the iframe itself is not directly controlled by this button.
-      // Users will use YouTube's own controls.
       console.warn("Play/Pause for YouTube videos is handled by the embedded player's controls.");
       return;
     }
@@ -58,49 +54,88 @@ const VideoPlayer = ({ src, title, onProgress, onComplete, lessonType = 'video' 
 
   const handleTimeUpdate = () => {
     if (isYouTube || !videoRef.current) return;
-    if (videoRef.current) {
-      const current = videoRef.current.currentTime;
-      const duration = videoRef.current.duration;
-      const calculatedProgress = Math.floor((current / duration) * 100);
+
+    const video = videoRef.current;
+    const current = video.currentTime;
+    const videoDuration = video.duration; // Renamed to avoid conflict with state variable
+
+    if (videoDuration && videoDuration > 0 && isFinite(videoDuration)) {
+      const calculatedProgress = Math.floor((current / videoDuration) * 100);
       
       setCurrentTime(current);
       setProgress(calculatedProgress);
-      onProgress(calculatedProgress);
-      
-      // Check if video is complete (using 98% as threshold to account for buffering issues)
-      if (calculatedProgress >= 98) {
-        onComplete();
+
+      if (onProgress) {
+        onProgress(calculatedProgress);
       }
+      
+      if (calculatedProgress >= 98) { // Using 98% as threshold
+        if (onComplete) {
+          onComplete();
+        }
+      }
+    } else {
+      setCurrentTime(current);
+      setProgress(0); 
     }
   };
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
-      setDuration(videoRef.current.duration);
+      const videoDuration = videoRef.current.duration;
+      if (isFinite(videoDuration)) {
+        setDuration(videoDuration);
+      } else {
+        setDuration(0);
+      }
     }
   };
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (videoRef.current) {
-      const seekTime = (parseInt(e.target.value) / 100) * videoRef.current.duration;
-      videoRef.current.currentTime = seekTime;
-      setCurrentTime(seekTime);
+    if (videoRef.current && duration > 0) { // ensure duration is positive before seeking
+      const seekTime = (parseInt(e.target.value) / 100) * duration;
+      if(isFinite(seekTime)) {
+        videoRef.current.currentTime = seekTime;
+        setCurrentTime(seekTime);
+      }
     }
   };
 
-  // Try to restore previously saved video position
   useEffect(() => {
-    const savedTime = localStorage.getItem(`video-${title}`);
-    if (savedTime && videoRef.current) {
-      videoRef.current.currentTime = parseFloat(savedTime);
-      setCurrentTime(parseFloat(savedTime));
+    const savedTimeKey = `video-${title}`;
+    const savedTime = localStorage.getItem(savedTimeKey);
+    if (videoRef.current && savedTime) {
+      const parsedTime = parseFloat(savedTime);
+      if (isFinite(parsedTime)) {
+        // Ensure video metadata is loaded before setting currentTime
+        const checkDurationAndSet = () => {
+          if (videoRef.current && videoRef.current.duration && isFinite(videoRef.current.duration)) {
+            if (parsedTime < videoRef.current.duration) {
+               videoRef.current.currentTime = parsedTime;
+               setCurrentTime(parsedTime);
+            } else {
+                // Saved time is beyond video duration, reset or remove
+                localStorage.removeItem(savedTimeKey);
+            }
+          } else if (videoRef.current) {
+            // Retry if duration not yet available
+            // videoRef.current.addEventListener('loadedmetadata', () => checkDurationAndSet(), { once: true });
+          }
+        };
+        if (videoRef.current.readyState >= 1) { // HAVE_METADATA or more
+             checkDurationAndSet();
+        } else {
+            videoRef.current.addEventListener('loadedmetadata', checkDurationAndSet, { once: true });
+        }
+      } else {
+        localStorage.removeItem(savedTimeKey); // Remove invalid item
+      }
     }
-  }, [title]);
+  }, [title]); // Removed videoRef.current from dependencies as it's a ref
 
-  // Save current position periodically
   useEffect(() => {
     const interval = setInterval(() => {
-      if (videoRef.current) {
+      if (videoRef.current && isFinite(videoRef.current.currentTime)) { // Save only finite values
         localStorage.setItem(`video-${title}`, videoRef.current.currentTime.toString());
       }
     }, 5000);
@@ -123,7 +158,6 @@ const VideoPlayer = ({ src, title, onProgress, onComplete, lessonType = 'video' 
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
         ></iframe>
-        {/* Minimal controls for YouTube, as most are in the player itself */}
         <div className="bg-gray-900 p-2 sm:p-4">
            <div className="text-sm text-white mb-2">{title}</div>
           {onComplete && (
@@ -143,9 +177,11 @@ const VideoPlayer = ({ src, title, onProgress, onComplete, lessonType = 'video' 
         className="w-full"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
         onEnded={() => {
           setIsPlaying(false);
-          if (onComplete) onComplete(); // Call onComplete when HTML5 video ends
+          if (onComplete) onComplete();
         }}
       >
         <source src={src} type="video/mp4" />
@@ -159,6 +195,7 @@ const VideoPlayer = ({ src, title, onProgress, onComplete, lessonType = 'video' 
             size="icon"
             className="text-white hover:text-white hover:bg-gray-800"
             onClick={togglePlayPause}
+            disabled={!isFinite(duration) || duration === 0} // Disable if duration is not valid
           >
             {isPlaying ? (
               <Pause className="h-5 w-5" />
@@ -175,6 +212,7 @@ const VideoPlayer = ({ src, title, onProgress, onComplete, lessonType = 'video' 
               value={progress}
               onChange={handleSeek}
               className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+              disabled={!isFinite(duration) || duration === 0} // Disable if duration is not valid
             />
           </div>
           
