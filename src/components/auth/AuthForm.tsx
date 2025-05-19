@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // Added useEffect to imports
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ const AuthForm = () => {
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { signInWithEmail, signUpWithEmail, roles } = useAuth();
+  const { signInWithEmail, signUpWithEmail, session, roles } = useAuth(); // Added session
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -24,11 +24,8 @@ const AuthForm = () => {
     setLoading(true);
     try {
       await signInWithEmail(email, password);
-      // The AuthContext useEffect will fetch roles and profile
-      // Navigating after roles are fetched might be better, or navigate based on default role
-      // For now, let's wait for roles to populate and then navigate in a useEffect in Index or App.
       toast({ title: "Signed in successfully!" });
-      // Navigation will be handled by a wrapper component or in App.tsx based on role
+      // Navigation will be handled by the useEffect below once roles are populated
     } catch (err: any) {
       setError(err.message || 'Failed to sign in.');
       toast({ title: "Sign in failed", description: err.message, variant: "destructive" });
@@ -45,7 +42,8 @@ const AuthForm = () => {
       await signUpWithEmail(email, password, fullName);
       toast({ title: "Sign up successful!", description: "Please check your email to confirm your account if required." });
       // User will be signed in automatically if email confirmation is off or after confirming.
-    } catch (err: any)      setError(err.message || 'Failed to sign up.');
+    } catch (err: any) { // Added missing opening curly brace
+      setError(err.message || 'Failed to sign up.');
       toast({ title: "Sign up failed", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
@@ -54,13 +52,14 @@ const AuthForm = () => {
 
   // Redirect after login/role fetch
   useEffect(() => {
-    if (roles.length > 0) {
-      if (roles.includes('admin')) navigate('/admin');
-      else if (roles.includes('instructor')) navigate('/instructor');
-      else if (roles.includes('student')) navigate('/student');
-      else navigate('/'); // Fallback
+    // Check if session exists and roles are populated
+    if (session && roles.length > 0) {
+      if (roles.includes('admin')) navigate('/admin', { replace: true });
+      else if (roles.includes('instructor')) navigate('/instructor', { replace: true });
+      else if (roles.includes('student')) navigate('/student', { replace: true });
+      else navigate('/', { replace: true }); // Fallback, or to a specific default dashboard
     }
-  }, [roles, navigate]);
+  }, [session, roles, navigate]);
 
 
   return (
