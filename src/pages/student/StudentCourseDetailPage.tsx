@@ -131,7 +131,6 @@ const StudentCourseDetailPage = () => {
     queryKey: ['courseDetails', courseId, user?.id],
     queryFn: () => {
       if (!courseId) return Promise.resolve(null);
-      // console.log(`Fetching course details for courseId: ${courseId}, userId: ${user?.id}`);
       return fetchCourseDetails(courseId, user?.id);
     },
     enabled: !!courseId,
@@ -268,23 +267,23 @@ const StudentCourseDetailPage = () => {
   
   return (
     <div className="animate-fade-in">
-      <PageHeader title={course.title} subtitle={course.description || ""} />
+      <PageHeader title={course!.title} subtitle={course!.description || ""} />
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-4 md:p-6">
         <div className="lg:col-span-2">
-          {selectedVideo && selectedVideo.url && (selectedVideo.type === 'video' || selectedVideo.type === 'youtube') ? (
+          {selectedVideo && (selectedVideo.type === 'video' || selectedVideo.type === 'youtube') ? (
             <VideoPlayer 
               key={selectedVideo.id}
-              src={selectedVideo.url} 
+              src={selectedVideo.url!} 
               title={selectedVideo.title}
-              lessonType={selectedVideo.type} {/* Now type is guaranteed to be 'video' | 'youtube' */}
-              onProgress={(p) => console.log(`Video ${selectedVideo.title} progress: ${p}%`)}
+              lessonType={selectedVideo.type}
+              onProgress={(p) => console.log('Video ' + selectedVideo.title + ' progress: ' + p + '%')}
               onComplete={() => handleVideoComplete(selectedVideo.id)}
             />
           ) : (
             <div className="aspect-video bg-gray-200 dark:bg-gray-800 flex items-center justify-center rounded-lg shadow-lg">
               <p className="text-gray-500 dark:text-gray-400">
-                {course.modules.flatMap(m => m.lessons).some(l => l.type === 'video' || l.type === 'youtube') 
+                {course!.modules.flatMap(m => m.lessons).some(l => l.type === 'video' || l.type === 'youtube') 
                   ? "Select a video to play." 
                   : "No video content available in this course."}
               </p>
@@ -301,16 +300,14 @@ const StudentCourseDetailPage = () => {
               <CardTitle>Course Content</CardTitle>
             </CardHeader>
             <CardContent className="max-h-[calc(100vh-200px)] overflow-y-auto">
-              {course.modules.length === 0 && <p className="text-gray-500">No modules in this course yet.</p>}
-              {course.modules.map((module) => (
+              {course!.modules.length === 0 && <p className="text-gray-500">No modules in this course yet.</p>}
+              {course!.modules.map((module) => (
                 <div key={module.id} className="mb-6">
                   <h3 className="font-semibold text-lg text-lms-darkBlue dark:text-lms-lightBlue mb-3">{module.title}</h3>
                   {module.lessons.length === 0 && <p className="text-xs text-gray-400 ml-2">No lessons in this module yet.</p>}
                   <ul className="space-y-2">
                     {module.lessons.map((lesson) => {
                       const unlocked = isLessonUnlocked(lesson, module.lessons, completedLessons);
-                      // A lesson is considered "selected" for highlighting if it's the current selectedVideo
-                      // and it's a type that would be played in the VideoPlayer.
                       const isSelectedForPlayer = selectedVideo?.id === lesson.id && (lesson.type === 'video' || lesson.type === 'youtube');
                       
                       return (
