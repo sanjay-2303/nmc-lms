@@ -127,10 +127,11 @@ const StudentCourseDetailPage = () => {
   const [selectedVideo, setSelectedVideo] = useState<Lesson | null>(null);
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
 
-  const { data: course, isLoading, error } = useQuery<Course | null, Error>({
+  const { data: course, isLoading, error, refetch: refetchCourseDetails } = useQuery<Course | null, Error>({
     queryKey: ['courseDetails', courseId, user?.id],
     queryFn: () => {
       if (!courseId) return Promise.resolve(null);
+      // console.log(`Fetching course details for courseId: ${courseId}, userId: ${user?.id}`);
       return fetchCourseDetails(courseId, user?.id);
     },
     enabled: !!courseId,
@@ -140,59 +141,43 @@ const StudentCourseDetailPage = () => {
     if (course && course.modules.length > 0) {
       const firstModule = course.modules[0];
       if (firstModule && firstModule.lessons.length > 0) {
-        // Try to select the first *unlocked* video lesson of the first module
         const firstPlayableVideo = firstModule.lessons.find(
           lesson => (lesson.type === 'video' || lesson.type === 'youtube') && isLessonUnlocked(lesson, firstModule.lessons, completedLessons)
         );
         if (firstPlayableVideo) {
           setSelectedVideo(firstPlayableVideo);
         } else {
-          // if no video is immediately playable, maybe select first lesson if it's a resource and unlocked
           const firstResourceIfUnlocked = firstModule.lessons.find(
             lesson => lesson.type === 'resource' && isLessonUnlocked(lesson, firstModule.lessons, completedLessons)
           );
           if (firstResourceIfUnlocked) {
-            // Potentially do something here, or just default to "select a video" message
+            // No specific action needed here for selectedVideo if only resource is available initially
           }
         }
       }
     } else if (course && course.modules.length === 0) {
-      setSelectedVideo(null); // No modules, no video
+      setSelectedVideo(null);
     }
   }, [course, completedLessons]);
 
   const isLessonUnlocked = (lesson: Lesson, lessonsInModule: Lesson[], currentCompletedLessons: Set<string>): boolean => {
     if (lesson.type === "resource") {
       const lessonIndex = lessonsInModule.findIndex(l => l.id === lesson.id);
-      if (lessonIndex === 0) return true; // First lesson, if resource, is always unlocked
+      if (lessonIndex === 0) return true; 
       
-      // Check if any preceding video lesson in the same module is completed
-      // This is a simplified logic: if any video before it is complete, it's unlocked.
-      // Or, if all preceding lessons are resources and unlocked.
-      for (let i = lessonIndex - 1; i >= 0; i--) {
-        const prevLesson = lessonsInModule[i];
-        if (prevLesson.type === 'video' || prevLesson.type === 'youtube') {
-          if (currentCompletedLessons.has(prevLesson.id)) return true; // Preceding video completed
-          // If preceding video is not completed, this resource is locked by that video.
-          // This implicitly means all videos before this resource must be completed.
-          let allPreviousVideosCompleted = true;
-          for (let j = 0; j < lessonIndex; j++) {
-            if ((lessonsInModule[j].type === 'video' || lessonsInModule[j].type === 'youtube') && !currentCompletedLessons.has(lessonsInModule[j].id)) {
-              allPreviousVideosCompleted = false;
-              break;
-            }
-          }
-          return allPreviousVideosCompleted;
+      let allPreviousVideosCompleted = true;
+      for (let j = 0; j < lessonIndex; j++) {
+        if ((lessonsInModule[j].type === 'video' || lessonsInModule[j].type === 'youtube') && !currentCompletedLessons.has(lessonsInModule[j].id)) {
+          allPreviousVideosCompleted = false;
+          break;
         }
       }
-      return true; // No preceding video lessons, so it's unlocked
+      return allPreviousVideosCompleted;
     }
 
-    // For video or YouTube lessons
     const lessonIndex = lessonsInModule.findIndex(l => l.id === lesson.id);
     if (lessonIndex === -1) return false; 
 
-    // Find the first video/youtube lesson in this module
     let firstVideoTypeIndexInModule = -1;
     for(let i=0; i < lessonsInModule.length; i++) {
       if(lessonsInModule[i].type === 'video' || lessonsInModule[i].type === 'youtube') {
@@ -201,10 +186,8 @@ const StudentCourseDetailPage = () => {
       }
     }
     
-    // If this lesson is the first video/youtube lesson in the module, it's unlocked
     if (lessonIndex === firstVideoTypeIndexInModule) return true;
 
-    // Otherwise, check if the immediately preceding *video/youtube* lesson is completed
     let precedingVideoTypeLesson: Lesson | null = null;
     for (let i = lessonIndex - 1; i >= 0; i--) {
       if (lessonsInModule[i].type === 'video' || lessonsInModule[i].type === 'youtube') {
@@ -212,8 +195,6 @@ const StudentCourseDetailPage = () => {
         break;
       }
     }
-    // If there's a preceding video/youtube lesson, it must be completed.
-    // If no preceding video/youtube (e.g., only resources before it), it's treated as the first "effective" video.
     return precedingVideoTypeLesson ? currentCompletedLessons.has(precedingVideoTypeLesson.id) : true; 
   };
 
@@ -226,6 +207,8 @@ const StudentCourseDetailPage = () => {
       setSelectedVideo(lesson);
     } else if (lesson.type === 'resource' && lesson.url) {
       try {
+        // For resources, we don't set selectedVideo, we just open the URL.
+        // This means selectedVideo remains on the last actual video or null.
         const resourceUrl = lesson.url.startsWith('http') ? lesson.url : `${window.location.origin}${lesson.url}`;
         window.open(resourceUrl, '_blank');
         toast.success(`Opening resource: ${lesson.title}`);
@@ -268,6 +251,7 @@ const StudentCourseDetailPage = () => {
     return (
       <div className="animate-fade-in p-4">
         <PageHeader title="Error Loading Course" subtitle={`Failed to load course data: ${error.message}`} />
+        <Button onClick={() => refetchCourseDetails()} className="mt-4 mr-2">Try Again</Button>
         <Button onClick={() => window.history.back()} className="mt-4">Go Back</Button>
       </div>
     );
@@ -288,21 +272,27 @@ const StudentCourseDetailPage = () => {
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-4 md:p-6">
         <div className="lg:col-span-2">
-          {selectedVideo && selectedVideo.url ? (
+          {selectedVideo && selectedVideo.url && (selectedVideo.type === 'video' || selectedVideo.type === 'youtube') ? (
             <VideoPlayer 
               key={selectedVideo.id}
               src={selectedVideo.url} 
               title={selectedVideo.title}
-              lessonType={selectedVideo.type}
+              lessonType={selectedVideo.type} {/* Now type is guaranteed to be 'video' | 'youtube' */}
               onProgress={(p) => console.log(`Video ${selectedVideo.title} progress: ${p}%`)}
               onComplete={() => handleVideoComplete(selectedVideo.id)}
             />
           ) : (
             <div className="aspect-video bg-gray-200 dark:bg-gray-800 flex items-center justify-center rounded-lg shadow-lg">
-              <p className="text-gray-500 dark:text-gray-400">Select a video to play, or no videos available/unlocked in this course.</p>
+              <p className="text-gray-500 dark:text-gray-400">
+                {course.modules.flatMap(m => m.lessons).some(l => l.type === 'video' || l.type === 'youtube') 
+                  ? "Select a video to play." 
+                  : "No video content available in this course."}
+              </p>
             </div>
           )}
-          {selectedVideo && <p className="mt-4 text-gray-700 dark:text-gray-300">{selectedVideo.description}</p>}
+          {selectedVideo && (selectedVideo.type === 'video' || selectedVideo.type === 'youtube') && selectedVideo.description && (
+            <p className="mt-4 text-gray-700 dark:text-gray-300">{selectedVideo.description}</p>
+          )}
         </div>
 
         <div className="lg:col-span-1">
@@ -319,24 +309,27 @@ const StudentCourseDetailPage = () => {
                   <ul className="space-y-2">
                     {module.lessons.map((lesson) => {
                       const unlocked = isLessonUnlocked(lesson, module.lessons, completedLessons);
-                      const isSelected = selectedVideo?.id === lesson.id && (lesson.type === 'video' || lesson.type === 'youtube');
+                      // A lesson is considered "selected" for highlighting if it's the current selectedVideo
+                      // and it's a type that would be played in the VideoPlayer.
+                      const isSelectedForPlayer = selectedVideo?.id === lesson.id && (lesson.type === 'video' || lesson.type === 'youtube');
+                      
                       return (
                         <li key={lesson.id} 
                             className={`p-3 rounded-md border dark:border-gray-700 transition-all duration-150 flex items-center justify-between group
                                         ${!unlocked ? 'bg-gray-100 dark:bg-gray-800 opacity-60 cursor-not-allowed' 
-                                                    : isSelected ? 'bg-lms-blue text-white shadow-md scale-105' 
+                                                    : isSelectedForPlayer ? 'bg-lms-blue text-white shadow-md scale-105' 
                                                                  : 'hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer'}`}
                             onClick={() => handleLessonClick(lesson, module.lessons)}>
                           <div className="flex items-center gap-3">
-                            {lesson.type === "video" || lesson.type === "youtube" ? <Video className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-lms-blue'}`} /> : <FileText className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-gray-600 dark:text-gray-400'}`} />}
-                            <span className={`text-sm ${isSelected ? 'font-semibold' : ''}`}>{lesson.title}</span>
+                            {lesson.type === "video" || lesson.type === "youtube" ? <Video className={`h-5 w-5 ${isSelectedForPlayer ? 'text-white' : 'text-lms-blue'}`} /> : <FileText className={`h-5 w-5 ${isSelectedForPlayer ? 'text-white' : 'text-gray-600 dark:text-gray-400'}`} />}
+                            <span className={`text-sm ${isSelectedForPlayer ? 'font-semibold' : ''}`}>{lesson.title}</span>
                           </div>
                           <div className="flex items-center gap-2 text-xs">
-                            {(lesson.type === "video" || lesson.type === "youtube") && lesson.duration && <span className={`${isSelected ? 'text-blue-200' : 'text-gray-500 dark:text-gray-400'}`}>{lesson.duration}</span>}
-                            {!unlocked && (lesson.type === "video" || lesson.type === "youtube") && <Lock className="h-4 w-4 text-gray-400 dark:text-gray-500" />}
+                            {(lesson.type === "video" || lesson.type === "youtube") && lesson.duration && <span className={`${isSelectedForPlayer ? 'text-blue-200' : 'text-gray-500 dark:text-gray-400'}`}>{lesson.duration}</span>}
+                            {!unlocked && (lesson.type === "video" || lesson.type === "youtube" || lesson.type === "resource") && <Lock className="h-4 w-4 text-gray-400 dark:text-gray-500" />}
                             {unlocked && lesson.type === "resource" && (
                               <Button variant="ghost" size="icon" asChild onClick={(e) => { e.stopPropagation(); if(lesson.url) handleLessonClick(lesson, module.lessons); }}>
-                                <Download className={`h-4 w-4 ${isSelected ? 'text-white': 'text-gray-600 dark:text-gray-400'} group-hover:text-lms-blue`} />
+                                <Download className={`h-4 w-4 ${isSelectedForPlayer ? 'text-white': 'text-gray-600 dark:text-gray-400'} group-hover:text-lms-blue`} />
                               </Button>
                             )}
                           </div>
