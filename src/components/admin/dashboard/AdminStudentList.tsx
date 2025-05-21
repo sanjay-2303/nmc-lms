@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Progress } from '@/components/ui/progress';
 import { toast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-// Changed FileText, FileCsv, FileType to File
 import { File, Search, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 
 interface StudentProfile {
@@ -17,7 +15,7 @@ interface StudentProfile {
   full_name: string | null;
   roll_number: string | null;
   avatar_url?: string | null;
-  email?: string | null; // Added email to profile
+  email?: string | null;
 }
 
 interface StudentData {
@@ -25,8 +23,8 @@ interface StudentData {
   fullName: string;
   rollNumber: string;
   email: string;
-  enrolledCoursesCount: number; // Simulated
-  progressDisplay: string; // Simulated
+  enrolledCoursesCount: number;
+  progressDisplay: string;
   avatarUrl?: string | null;
 }
 
@@ -37,46 +35,55 @@ const getRandomInt = (min: number, max: number) => Math.floor(Math.random() * (m
 const courseNames = ["Financial Auditing", "Corporate Law", "Taxation", "Cost Accounting", "Management Accounting"];
 
 const fetchStudents = async (): Promise<StudentData[]> => {
-  // Fetch student role user_ids
-  const { data: studentRoles, error: rolesError } = await supabase
-    .from('user_roles')
-    .select('user_id')
-    .eq('role', 'student');
+  try {
+    // Fetch student role user_ids
+    const { data: studentRoles, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('user_id')
+      .eq('role', 'student');
 
-  if (rolesError) {
-    console.error('Error fetching student roles:', rolesError);
-    throw new Error(rolesError.message);
+    if (rolesError) {
+      console.error('Error fetching student roles:', rolesError);
+      throw new Error(rolesError.message);
+    }
+    if (!studentRoles || studentRoles.length === 0) return [];
+
+    const studentUserIds = studentRoles.map(ur => ur.user_id);
+
+    // Fetch profiles for these user_ids - added error handling
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, full_name, roll_number, avatar_url, email')
+      .in('id', studentUserIds);
+
+    if (profilesError) {
+      console.error('Error fetching student profiles:', profilesError);
+      throw new Error(profilesError.message);
+    }
+
+    if (!profiles) return [];
+
+    // Map profiles to StudentData with proper type checking
+    return profiles.map((profile: StudentProfile) => ({
+      id: profile.id,
+      fullName: profile.full_name || 'N/A',
+      rollNumber: profile.roll_number || 'N/A',
+      // Use actual email if available, otherwise generate a mock one
+      email: profile.email || `${(profile.full_name || 'student').toLowerCase().replace(/\s+/g, '.')}@example.com`,
+      enrolledCoursesCount: getRandomInt(1, 3),
+      progressDisplay: `${courseNames[getRandomInt(0, courseNames.length - 1)]}: ${getRandomInt(20, 90)}%`,
+      avatarUrl: profile.avatar_url,
+    }));
+  } catch (error) {
+    console.error('Error in fetchStudents:', error);
+    toast({
+      title: "Error fetching students",
+      description: error instanceof Error ? error.message : "Unknown error occurred",
+      variant: "destructive"
+    });
+    return [];
   }
-  if (!studentRoles || studentRoles.length === 0) return [];
-
-  const studentUserIds = studentRoles.map(ur => ur.user_id);
-
-  // Fetch profiles for these user_ids
-  const { data: profiles, error: profilesError } = await supabase
-    .from('profiles')
-    .select('id, full_name, roll_number, avatar_url, email') // Added email here
-    .in('id', studentUserIds);
-
-  if (profilesError) {
-    console.error('Error fetching student profiles:', profilesError);
-    throw new Error(profilesError.message);
-  }
-
-  if (!profiles) return [];
-
-  return profiles.map(profile => ({
-    id: profile.id,
-    fullName: profile.full_name || 'N/A',
-    rollNumber: profile.roll_number || 'N/A',
-    // Use actual email if available, otherwise mock it.
-    // This assumes email is now part of the 'profiles' table and select.
-    email: profile.email || `${(profile.full_name || 'student').toLowerCase().replace(/\s+/g, '.')}@example.com`,
-    enrolledCoursesCount: getRandomInt(1, 3),
-    progressDisplay: `${courseNames[getRandomInt(0, courseNames.length - 1)]}: ${getRandomInt(20, 90)}%`,
-    avatarUrl: profile.avatar_url,
-  }));
 };
-
 
 const AdminStudentList = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -230,4 +237,3 @@ const AdminStudentList = () => {
 };
 
 export default AdminStudentList;
-
