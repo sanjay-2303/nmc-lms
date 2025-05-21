@@ -9,20 +9,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Progress } from '@/components/ui/progress';
 import { toast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileText, FileCsv, FileType, Search, ChevronLeft, ChevronRight, Users } from 'lucide-react';
+// Changed FileText, FileCsv, FileType to File
+import { File, Search, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 
 interface StudentProfile {
   id: string;
   full_name: string | null;
   roll_number: string | null;
   avatar_url?: string | null;
+  email?: string | null; // Added email to profile
 }
 
 interface StudentData {
   id: string;
   fullName: string;
   rollNumber: string;
-  email: string; // Mocked
+  email: string;
   enrolledCoursesCount: number; // Simulated
   progressDisplay: string; // Simulated
   avatarUrl?: string | null;
@@ -35,10 +37,25 @@ const getRandomInt = (min: number, max: number) => Math.floor(Math.random() * (m
 const courseNames = ["Financial Auditing", "Corporate Law", "Taxation", "Cost Accounting", "Management Accounting"];
 
 const fetchStudents = async (): Promise<StudentData[]> => {
+  // Fetch student role user_ids
+  const { data: studentRoles, error: rolesError } = await supabase
+    .from('user_roles')
+    .select('user_id')
+    .eq('role', 'student');
+
+  if (rolesError) {
+    console.error('Error fetching student roles:', rolesError);
+    throw new Error(rolesError.message);
+  }
+  if (!studentRoles || studentRoles.length === 0) return [];
+
+  const studentUserIds = studentRoles.map(ur => ur.user_id);
+
+  // Fetch profiles for these user_ids
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
-    .select('id, full_name, roll_number, avatar_url')
-    .in('id', (await supabase.from('user_roles').select('user_id').eq('role', 'student')).data?.map(ur => ur.user_id) || []);
+    .select('id, full_name, roll_number, avatar_url, email') // Added email here
+    .in('id', studentUserIds);
 
   if (profilesError) {
     console.error('Error fetching student profiles:', profilesError);
@@ -47,12 +64,13 @@ const fetchStudents = async (): Promise<StudentData[]> => {
 
   if (!profiles) return [];
 
-  // Simulate additional data for now
   return profiles.map(profile => ({
     id: profile.id,
     fullName: profile.full_name || 'N/A',
     rollNumber: profile.roll_number || 'N/A',
-    email: `${(profile.full_name || 'student').toLowerCase().replace(/\s+/g, '.')}@example.com`, // Mocked email
+    // Use actual email if available, otherwise mock it.
+    // This assumes email is now part of the 'profiles' table and select.
+    email: profile.email || `${(profile.full_name || 'student').toLowerCase().replace(/\s+/g, '.')}@example.com`,
     enrolledCoursesCount: getRandomInt(1, 3),
     progressDisplay: `${courseNames[getRandomInt(0, courseNames.length - 1)]}: ${getRandomInt(20, 90)}%`,
     avatarUrl: profile.avatar_url,
@@ -103,14 +121,15 @@ const AdminStudentList = () => {
             Student List ({filteredStudents.length})
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => handleExport('pdf')} className="hidden sm:inline-flex">
-              <FileText className="h-4 w-4" />
+            {/* Using File icon for all export buttons */}
+            <Button variant="outline" size="icon" onClick={() => handleExport('pdf')} className="hidden sm:inline-flex" aria-label="Export as PDF">
+              <File className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon" onClick={() => handleExport('word')} className="hidden sm:inline-flex">
-              <FileType className="h-4 w-4" />
+            <Button variant="outline" size="icon" onClick={() => handleExport('word')} className="hidden sm:inline-flex" aria-label="Export as Word">
+              <File className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon" onClick={() => handleExport('csv')} className="hidden sm:inline-flex">
-              <FileCsv className="h-4 w-4" />
+            <Button variant="outline" size="icon" onClick={() => handleExport('csv')} className="hidden sm:inline-flex" aria-label="Export as CSV">
+              <File className="h-4 w-4" />
             </Button>
              {/* Mobile export options could be a dropdown if space is an issue */}
           </div>
@@ -132,10 +151,10 @@ const AdminStudentList = () => {
       <CardContent>
         {isLoading ? (
           <div className="space-y-2">
-            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+            {[...Array(ITEMS_PER_PAGE)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
           </div>
         ) : paginatedStudents.length === 0 ? (
-          <p className="text-center text-gray-500 py-4">No students found.</p>
+          <p className="text-center text-gray-500 py-4">No students found matching your search.</p>
         ) : (
           <div className="overflow-x-auto">
             <Table>
@@ -161,11 +180,15 @@ const AdminStudentList = () => {
                     <TableCell className="hidden sm:table-cell">{student.email}</TableCell>
                     <TableCell className="text-center hidden lg:table-cell">{student.enrolledCoursesCount}</TableCell>
                     <TableCell className="hidden lg:table-cell">
-                      <div className="flex items-center">
-                        <span className="mr-2 w-32 truncate text-xs">{student.progressDisplay.split(':')[0]}</span>
-                        <Progress value={parseInt(student.progressDisplay.split(':')[1] || '0')} className="w-24 h-2" />
-                        <span className="ml-2 text-xs">{student.progressDisplay.split(':')[1]}</span>
-                      </div>
+                      {student.progressDisplay ? (
+                        <div className="flex items-center">
+                          <span className="mr-2 w-32 truncate text-xs">{student.progressDisplay.split(':')[0]}</span>
+                          <Progress value={parseInt(student.progressDisplay.split(':')[1]?.trim().replace('%', '') || '0')} className="w-24 h-2" />
+                          <span className="ml-2 text-xs">{student.progressDisplay.split(':')[1]}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">N/A</span>
+                      )}
                        <div className="text-sm text-muted-foreground lg:hidden">{student.progressDisplay} ({student.enrolledCoursesCount} courses)</div>
                     </TableCell>
                     <TableCell className="text-right">
