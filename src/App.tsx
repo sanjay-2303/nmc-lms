@@ -26,6 +26,7 @@ import AdminManageCoursesPage from "./pages/admin/AdminManageCoursesPage";
 import AdminManageInstructorsPage from "./pages/admin/AdminManageInstructorsPage";
 import AdminManageStudentsPage from "./pages/admin/AdminManageStudentsPage";
 import AdminReportsPage from "./pages/admin/AdminReportsPage";
+import AdminEnhancedDashboardPage from "./pages/admin/AdminEnhancedDashboardPage"; // Added import
 
 const queryClient = new QueryClient();
 
@@ -106,6 +107,7 @@ const AppRoutes = () => {
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
+          <Route path="dashboard-enhanced" element={<AdminEnhancedDashboardPage />} /> {/* New Route */}
           <Route path="courses" element={<AdminManageCoursesPage />} />
           <Route path="instructors" element={<AdminManageInstructorsPage />} />
           <Route path="students" element={<AdminManageStudentsPage />} />

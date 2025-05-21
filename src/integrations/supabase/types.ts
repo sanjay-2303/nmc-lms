@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_activity_logs: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          target_entity_id: string | null
+          target_entity_type: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_entity_id?: string | null
+          target_entity_type?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_entity_id?: string | null
+          target_entity_type?: string | null
+        }
+        Relationships: []
+      }
       courses: {
         Row: {
           created_at: string | null
@@ -137,18 +167,21 @@ export type Database = {
           avatar_url: string | null
           full_name: string | null
           id: string
+          roll_number: string | null
           updated_at: string | null
         }
         Insert: {
           avatar_url?: string | null
           full_name?: string | null
           id: string
+          roll_number?: string | null
           updated_at?: string | null
         }
         Update: {
           avatar_url?: string | null
           full_name?: string | null
           id?: string
+          roll_number?: string | null
           updated_at?: string | null
         }
         Relationships: []

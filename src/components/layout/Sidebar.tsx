@@ -1,8 +1,7 @@
-
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Book, Home, Users, Video, FileText, BookOpen } from "lucide-react";
+import { Book, Home, Users, Video, FileText, BookOpen, LayoutDashboard } from "lucide-react";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -10,28 +9,34 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ isOpen, userRole = "student" }: SidebarProps) => {
-  const [activeItem, setActiveItem] = useState("dashboard");
+  const location = useLocation();
+  const [activeItem, setActiveItem] = useState(location.pathname);
+
+  useState(() => {
+    setActiveItem(location.pathname);
+  });
 
   const adminLinks = [
-    { name: "Dashboard", icon: Home, path: "/admin", id: "dashboard" },
-    { name: "Courses", icon: Book, path: "/admin/courses", id: "courses" },
-    { name: "Instructors", icon: Users, path: "/admin/instructors", id: "instructors" },
-    { name: "Students", icon: Users, path: "/admin/students", id: "students" },
-    { name: "Reports", icon: FileText, path: "/admin/reports", id: "reports" },
+    { name: "Old Dashboard", icon: Home, path: "/admin", id: "/admin" },
+    { name: "Enhanced Dashboard", icon: LayoutDashboard, path: "/admin/dashboard-enhanced", id: "/admin/dashboard-enhanced" },
+    { name: "Courses", icon: Book, path: "/admin/courses", id: "/admin/courses" },
+    { name: "Instructors", icon: Users, path: "/admin/instructors", id: "/admin/instructors" },
+    { name: "Students", icon: Users, path: "/admin/students", id: "/admin/students" },
+    { name: "Reports", icon: FileText, path: "/admin/reports", id: "/admin/reports" },
   ];
 
   const instructorLinks = [
-    { name: "Dashboard", icon: Home, path: "/instructor", id: "dashboard" },
-    { name: "My Courses", icon: Book, path: "/instructor/courses", id: "courses" },
-    { name: "Upload Content", icon: Video, path: "/instructor/upload", id: "upload" },
-    { name: "Student Progress", icon: Users, path: "/instructor/progress", id: "progress" },
+    { name: "Dashboard", icon: Home, path: "/instructor", id: "/instructor" },
+    { name: "My Courses", icon: Book, path: "/instructor/courses", id: "/instructor/courses" },
+    { name: "Upload Content", icon: Video, path: "/instructor/upload", id: "/instructor/upload" },
+    { name: "Student Progress", icon: Users, path: "/instructor/progress", id: "/instructor/progress" },
   ];
 
   const studentLinks = [
-    { name: "Dashboard", icon: Home, path: "/student", id: "dashboard" },
-    { name: "My Courses", icon: Book, path: "/student/courses", id: "courses" },
-    { name: "Lessons", icon: BookOpen, path: "/student/lessons", id: "lessons" },
-    { name: "Resources", icon: FileText, path: "/student/resources", id: "resources" },
+    { name: "Dashboard", icon: Home, path: "/student", id: "/student" },
+    { name: "My Courses", icon: Book, path: "/student/courses", id: "/student/courses" },
+    { name: "Lessons", icon: BookOpen, path: "/student/lessons", id: "/student/lessons" },
+    { name: "Resources", icon: FileText, path: "/student/resources", id: "/student/resources" },
   ];
 
   const links = {
@@ -60,9 +65,9 @@ const Sidebar = ({ isOpen, userRole = "student" }: SidebarProps) => {
                 to={link.path}
                 className={cn(
                   "sidebar-link",
-                  activeItem === link.id && "active"
+                  (activeItem === link.path || (link.path !== "/" && activeItem.startsWith(link.path))) && "active"
                 )}
-                onClick={() => setActiveItem(link.id)}
+                onClick={() => setActiveItem(link.path)}
               >
                 <link.icon className="h-5 w-5" />
                 {link.name}
