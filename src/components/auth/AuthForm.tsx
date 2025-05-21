@@ -1,19 +1,19 @@
-
 import { useState, useEffect } from 'react';
-import { useAuth, AppRole } from '@/contexts/AuthContext'; // Added AppRole
+import { useAuth, AppRole } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group" // Added RadioGroup
+import { GraduationCap, Briefcase } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const AuthForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [selectedRole, setSelectedRole] = useState<AppRole>('student'); // Added state for role selection
+  const [selectedRole, setSelectedRole] = useState<AppRole>('student');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { signInWithEmail, signUpWithEmail, session, roles } = useAuth();
@@ -41,10 +41,8 @@ const AuthForm = () => {
     setError(null);
     setLoading(true);
     try {
-      await signUpWithEmail(email, password, fullName, selectedRole); // Pass selectedRole
+      await signUpWithEmail(email, password, fullName, selectedRole);
       toast({ title: "Sign up successful!", description: "Please check your email to confirm your account if required." });
-      // User will be signed in automatically if email confirmation is off or after confirming.
-      // Reset form fields
       setEmail('');
       setPassword('');
       setFullName('');
@@ -57,17 +55,40 @@ const AuthForm = () => {
     }
   };
 
+  const RoleButton = ({
+    role,
+    label,
+    icon: Icon,
+  }: {
+    role: AppRole;
+    label: string;
+    icon: React.ElementType;
+  }) => (
+    <button
+      type="button"
+      onClick={() => setSelectedRole(role)}
+      className={cn(
+        "flex items-center w-full p-4 space-x-3 rounded-lg border text-left transition-colors",
+        "focus:outline-none focus:ring-2 focus:ring-lms-blue focus:ring-offset-1",
+        selectedRole === role
+          ? "bg-lms-blue text-white border-lms-blue shadow-md"
+          : "bg-white hover:bg-lms-lightBlue/30 border-gray-300 text-gray-700"
+      )}
+    >
+      <Icon className={cn("h-7 w-7", selectedRole === role ? "text-white" : "text-lms-blue")} />
+      <span className="text-base font-medium">{label}</span>
+    </button>
+  );
+
   // Redirect after login/role fetch
   useEffect(() => {
-    // Check if session exists and roles are populated
     if (session && roles.length > 0) {
       if (roles.includes('admin')) navigate('/admin', { replace: true });
       else if (roles.includes('instructor')) navigate('/instructor', { replace: true });
       else if (roles.includes('student')) navigate('/student', { replace: true });
-      else navigate('/', { replace: true }); // Fallback, or to a specific default dashboard
+      else navigate('/', { replace: true }); 
     }
   }, [session, roles, navigate]);
-
 
   return (
     <Tabs defaultValue="signin" className="w-full max-w-md">
@@ -106,7 +127,7 @@ const AuthForm = () => {
         </form>
       </TabsContent>
       <TabsContent value="signup">
-        <form onSubmit={handleSignUp} className="space-y-4 mt-4">
+        <form onSubmit={handleSignUp} className="space-y-6 mt-4">
           <div>
             <Label htmlFor="fullname-signup">Full Name</Label>
             <Input
@@ -140,25 +161,24 @@ const AuthForm = () => {
               placeholder="Choose a strong password"
             />
           </div>
+          
           <div>
-            <Label>Sign up as</Label>
-            <RadioGroup
-              defaultValue="student"
-              onValueChange={(value) => setSelectedRole(value as AppRole)}
-              className="flex space-x-4 mt-2"
-              value={selectedRole}
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="student" id="role-student" />
-                <Label htmlFor="role-student">Student</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="instructor" id="role-instructor" />
-                <Label htmlFor="role-instructor">Instructor</Label>
-              </div>
-            </RadioGroup>
-            <p className="text-xs text-gray-500 mt-1">Admin accounts are created manually.</p>
+            <Label className="block mb-2 text-sm font-medium text-gray-700">Sign up as</Label>
+            <div className="space-y-3">
+              <RoleButton
+                role="student"
+                label="NMC Student"
+                icon={GraduationCap}
+              />
+              <RoleButton
+                role="instructor"
+                label="Staff"
+                icon={Briefcase}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-2">Admin accounts are created manually.</p>
           </div>
+
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? 'Signing Up...' : 'Sign Up'}
